@@ -1,7 +1,7 @@
 # Unsupervised LLAMAS
 Code for the Unsupervised Labeled LAne MArkerS (LLAMAS) dataset. The dataset and more information is available at https://unsupervised-llamas.com. 
 
-All contributions are welcome, e.g. sample scripts in different machine learning frameworks.
+All contributions are welcome, e.g. sample scripts in different machine learning frameworks.  You can even change the [website's code](https://github.com/karstenBehrendt/benchmarks_website/tree/master/benchmarks/llamas)
 
 ## Sample
 

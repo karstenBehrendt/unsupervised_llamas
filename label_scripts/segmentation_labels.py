@@ -2,7 +2,6 @@
 Collection of functions to create segmentation labels
 """
 
-
 import numpy
 
 from unsupervised_llamas.label_scripts import visualize_labels
@@ -27,7 +26,7 @@ def create_multi_class_segmentation_label(json_path):
     -----
     Only draws 4 classes, can easily be extended for to a given number of lanes
     """
-    debug_image = visualize_labels.create_segmentation_image(json_path, 'blank')
+    debug_image = visualize_labels.create_segmentation_image(json_path, image='blank')
 
     l1 = (debug_image == dc.DICT_COLORS['l1']).all(axis=2).astype(numpy.uint8)
     l0 = (debug_image == dc.DICT_COLORS['l0']).all(axis=2).astype(numpy.uint8)
@@ -50,10 +49,10 @@ def create_binary_segmentation_label(json_path):
     Returns
     -------
     numpy.array
-        binary 0 or 255 label, (716, 1276), numpy.uint8
+        binary image, 0 for background or 1 for marker, (716, 1276), numpy.uint8
     """
     blank_image = numpy.zeros((717, 1276), dtype=numpy.uint8)
     blank_image = visualize_labels.create_segmentation_image(
-        json_path, color=255, image=blank_image)
+        json_path, color=1, image=blank_image)
 
     return blank_image

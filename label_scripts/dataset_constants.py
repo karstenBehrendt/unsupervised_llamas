@@ -25,11 +25,11 @@ NUM_TEST_IMAGES = 20929
 # Multi-class segmentation colors for the individual lanes
 # The names are based on the camera location, e.g. the markers
 # from r2 divide the first lane to the right from the second to the right
-DCOLORS = [(75, 25, 230), (75, 180, 60), (200, 130, 0), (48, 130, 245), (180, 30, 145),
+DCOLORS = [(110, 30, 30), (75, 25, 230), (75, 180, 60), (200, 130, 0), (48, 130, 245), (180, 30, 145),
            (0, 0, 255), (24, 140, 34), (255, 0, 0), (0, 255, 255),  # the main ones
            (40, 110, 170), (200, 250, 255), (255, 190, 230), (0, 0, 128), (195, 255, 170),
            (0, 128, 128), (195, 255, 170), (75, 25, 230)]
-LANE_NAMES = ['l6', 'l5', 'l4', 'l3', 'l2',
+LANE_NAMES = ['l7', 'l6', 'l5', 'l4', 'l3', 'l2',
               'l1', 'l0', 'r0', 'r1',
               'r2', 'r3', 'r4', 'r5',
               'r6', 'r7', 'r8']

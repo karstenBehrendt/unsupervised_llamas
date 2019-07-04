@@ -111,7 +111,7 @@ def read_image(json_path, image_type='gray'):
         image_path = os.path.join(dc.GRAYSCALE_IMAGES, base_name.replace('.json', '_gray_rect.png'))
         imread_code = cv2.IMREAD_GRAYSCALE
     elif image_type == 'color':
-        image_path = os.path.join(dc.GRAYSCALE_IMAGES, base_name.replace('.json', '_color_rect.png'))
+        image_path = os.path.join(dc.COLOR_IMAGES, base_name.replace('.json', '_color_rect.png'))
         imread_code = cv2.IMREAD_COLOR
     else:
         ValueError('Unknown image_type: {}'.format(image_type))

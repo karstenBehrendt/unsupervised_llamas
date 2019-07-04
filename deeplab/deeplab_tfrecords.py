@@ -9,7 +9,7 @@ Usage:
     python deeplab_tfrecords.py
 
 Paramaters / Flags:
-    --color-input switches input images to color images intead of grayscale
+    --color_input switches input images to color images intead of grayscale
                   The driver assistance camera focuses on specific colors with an RCCB pattern.
                   Color images may not look like your typical video. The grayscale
                   images may look nicer. The dataset contains both.

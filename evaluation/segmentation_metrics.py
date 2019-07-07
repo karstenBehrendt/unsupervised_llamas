@@ -110,6 +110,7 @@ def binary_approx_auc(prediction, label):
     corner_precision = 0
     corner_recall = 0
     corner_auc = 0
+    corner_threshold = 0
 
     precisions = [1]
     recalls = [0]
@@ -131,10 +132,12 @@ def binary_approx_auc(prediction, label):
             corner_auc = precision * recall
             corner_precision = precision
             corner_recall = recall
+            corner_threshold = threshold
 
         precisions.append(precision)
         recalls.append(recall)
 
         auc_value += (recalls[-1] - recalls[-2]) * precisions[-2]
 
-    return {'recall': corner_recall, 'precision': corner_precision, 'auc': auc_value}
+    return {'recall': corner_recall, 'precision': corner_precision,
+            'threshold': corner_threshold, 'auc': auc_value}

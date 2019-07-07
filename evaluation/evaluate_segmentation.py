@@ -33,7 +33,7 @@ Usage:
         --inference_folder folder_with_stored_inference_images
         --multi_class (optional if it is not binary)
 """
-# TODO Needs to be tested and needs docstrings
+# TODO Needs to be tested
 # TODO The binary and multi_class evaluation can probably be combined
 #      by just checking which files exist
 # TODO The multithreading call can be implemented in a cleaner way
@@ -41,6 +41,7 @@ Usage:
 import argparse
 import concurrent.futures
 import os
+import pprint
 
 import cv2
 import tqdm
@@ -88,7 +89,8 @@ def single_threaded_binary_eval_single_image(label_path, segmentation_folder):
         helper_scripts.get_label_base(label_path)) + '_1.png'
     segmentation = cv2.imread(segmentation_path, cv2.IMREAD_GRAYSCALE).astype(float) / 255
 
-    results = segmentation_metrics.binary_approx_auc(segmentation, target)
+    results = {}
+    results[1] = segmentation_metrics.binary_approx_auc(segmentation, target)
     return results
 
 
@@ -142,16 +144,23 @@ def evaluate_set(segmentation_folder, eval_function, dataset_split='test', max_w
             eval_dicts[label_path] = eval_function((label_path, segmentation_folder))
 
     # The reduce step. Calculates averages
-    eval_keys = list(list(eval_dicts.values())[0].keys())
-    averaged_results = {key: 0 for key in eval_keys}
-    for eval_dict in eval_dicts.values():
-        for key, value in eval_dict.items():
-            averaged_results[key] += value
-    for key in eval_keys:
-        averaged_results[key] /= len(label_paths)
+    label_paths = list(eval_dicts.keys())
+    lanes = list(eval_dicts[label_paths[0]].keys())
+    metrics = list(eval_dicts[label_paths[0]][lanes[0]].keys())
 
-    print(segmentation_folder, '\n', averaged_results)
-    return averaged_results
+    mean_results = {}
+    for lane in lanes:
+        mean_results[lane] = {}
+        for metric in metrics:
+            mean = 0
+            for label_path in label_paths:
+                mean += eval_dicts[label_path][lane][metric]
+            mean /= len(label_paths)
+            mean_results[lane][metric] = mean
+
+    pprint.pprint(segmentation_folder)
+    pprint.pprint(mean_results)
+    return mean_results
 
 
 def parse_args():

@@ -76,6 +76,8 @@ def single_threaded_multi_eval_single_image(label_path, segmentation_folder):
             helper_scripts.get_label_base(label_path)) + '_{}.png'.format(i)
 
         segmentation = cv2.imread(segmentation_path, cv2.IMREAD_GRAYSCALE).astype(float) / 255
+        if segmentation is None:
+            raise IOError('Could not read image. Is this label path correct?', label_path)
         results[i] = segmentation_metrics.binary_approx_auc(segmentation, target[:, :, i])
 
     return results
@@ -168,10 +170,15 @@ def parse_args():
     parser.add_argument('--inference_folder', type=str, required=True,
                         help='Folder of inference images, see docstring')
     parser.add_argument('--multi_class', action='store_true')
+    parser.add_argument('--max_workers', type=int, default=8)
+    parser.add_argument(
+        '--split', type=str, required=False, default='test',
+        help="('train' | 'valid' | 'test') to select the split to evaluate")
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args = parse_args()
     eval_function = multi_eval_single_image if args.multi_class else binary_eval_single_image
-    evaluate_set(args.inference_folder, eval_function)
+    evaluate_set(args.inference_folder, eval_function, dataset_split=args.split,
+                 max_workers=args.max_workers)

@@ -6,6 +6,7 @@ to file for a given image folder and a checkpoint of a trained model
 import argparse
 import os
 import pdb  # noqa
+import time
 
 import cv2
 import numpy
@@ -51,6 +52,20 @@ class NetModel():
         input_dict['is_training:0'] = False
         pf = tf.get_default_graph().get_tensor_by_name('inference_values/prediction:0')
         return self._sess.run(pf, feed_dict=input_dict)
+
+
+def model_speed(checkpoint_file, num_samples, num_channels):
+    """Crude method to measure network speeed without optimization"""
+    nm = NetModel(checkpoint=checkpoint_file)
+    images = numpy.random.random_integers(0, 255, (num_samples, 1, 1216, 717, num_channels))
+    with tf.Session():
+        start = time.time()
+        for image in tqdm.tqdm(images):
+            prediction = nm.single_batch_inference({'image_input:0': image})
+
+        end = time.time()
+    duration = end - start
+    print('Inference duration per sample', duration / num_samples, 'based on', num_samples)
 
 
 def folder_inference(checkpoint_file, image_folder, gray=True, binary=True, location=False, suffix='_test'):

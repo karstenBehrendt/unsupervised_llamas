@@ -1,7 +1,17 @@
 # Unsupervised LLAMAS
 Code for the Unsupervised Labeled LAne MArkerS (LLAMAS) dataset. The dataset and more information is available at https://unsupervised-llamas.com. 
+The leaderboard is available [here](https://unsupervised-llamas.com/llamas/benchmarks). Since lane markers and lane detection are evaluated based on multiple metrics, new metrics can be added to the benchmarks as well.
 
 All contributions are welcome, e.g. sample scripts in different machine learning frameworks.  You can even change the [website's code](https://github.com/karstenBehrendt/benchmarks_website/tree/master/benchmarks/llamas)
+
+## Starter Code
+Make sure to check the label_file_scripts/label_file_scripts.py for loading and using the annotations. There exist a few sample use-cases and implementations.
+The simple_baseline folder contains a simplistic baseline approach in Tensorflow which is supposed to be easy to understand.
+The deeplab folder offers some scripts to train deeplab models for the unsupervised LLAMAS dataset.
+All results for the leaderboards are calculated based on scripts in the evaluation folder.
+
+## Video
+Make sure to checkout the [Youtube video](https://youtu.be/kp0qz8PuXxA) with samples from the dataset and baseline approaches.
 
 ## Sample
 

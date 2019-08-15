@@ -1,17 +1,17 @@
 
-### Requirements
+## Requirements
 - [Torch](http://torch.ch/docs/getting-started.html), please follow the installation instructions at [fb.resnet.torch](https://github.com/facebook/fb.resnet.torch).
 
-### Before Start
+## Before Start
 
 Please follow [train_final.txt](./list/train_final.txt) and [val_final.txt](./list/val_final.txt) to put LLAMAS dataset in the desired folder. We'll call the directory that you cloned ENet-SAD-Simple as `$ENet_ROOT`.
 
-### Testing
-1. Download our trained models to `./experiments/pretrained`
+## Testing
+1. Put your trained model to `./experiments/pretrained`
     ```Shell
     cd $ENet_ROOT/experiments/pretrained
     ```
-   I will provide the trained model when our paper is published.
+   You can just train the model by yourself and have a test.
 
 2. Run test script
     ```Shell
@@ -49,7 +49,7 @@ Please follow [train_final.txt](./list/train_final.txt) and [val_final.txt](./li
   	'recall': 0.4491891521484192,
   	'threshold': 0.8424673897462851}
 
-### Training
+## Training
 1. Download the pre-trained model
     ```Shell
     cd $ENet_ROOT/experiments/models
@@ -62,4 +62,17 @@ Please follow [train_final.txt](./list/train_final.txt) and [val_final.txt](./li
     ```
     The training process should start and trained models would be saved in `experiments/models/ENet-SAD-Simple` by default.  
     Then you can test the trained model following the Testing steps above. If your model position or name is changed, remember to set them to yours accordingly.
+
+## Citation
+
+If you use the codes, please cite the following publications:
+
+``` 
+@article{hou2019learning,
+  title={Learning Lightweight Lane Detection CNNs by Self Attention Distillation},
+  author={Hou, Yuenan and Ma, Zheng and Liu, Chunxiao and Loy, Chen Change},
+  journal={arXiv preprint arXiv:1908.00821},
+  year={2019}
+}
+```
 

@@ -23,7 +23,7 @@ Please follow [train_final.txt](./list/train_final.txt) and [val_final.txt](./li
 3. Submit the results to server 
     Please follow the instructions of LLAMAS to submit your results.
     The performance of our trained model is as follows:
-    ```Shell
+
  {0: {'auc': 0.9999917047921401,
   	'precision': 0.9973478736332135,
   	'recall': 0.9971669285812986,
@@ -44,7 +44,6 @@ Please follow [train_final.txt](./list/train_final.txt) and [val_final.txt](./li
   	'precision': 0.3300198333296339,
   	'recall': 0.4491891521484192,
   	'threshold': 0.8424673897462851}}
-    ```
 
 ### Training
 1. Download the pre-trained model

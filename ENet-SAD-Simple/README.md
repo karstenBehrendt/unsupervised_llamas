@@ -24,26 +24,30 @@ Please follow [train_final.txt](./list/train_final.txt) and [val_final.txt](./li
     Please follow the instructions of LLAMAS to submit your results.
     The performance of our trained model is as follows:
 
- {0: {'auc': 0.9999917047921401,
+  0: {'auc': 0.9999917047921401,
   	'precision': 0.9973478736332135,
   	'recall': 0.9971669285812986,
   	'threshold': 0.8156624779014764},
+
   1: {'auc': 0.26641235441069483,
   	'precision': 0.16706499250242474,
   	'recall': 0.32421710675084453,
   	'threshold': 0.467389746285059},
+
   2: {'auc': 0.8964441173279966,
   	'precision': 0.6147108519863974,
   	'recall': 0.7864514156111525,
   	'threshold': 0.9866214343733576},
+
   3: {'auc': 0.8804212880439664,
   	'precision': 0.6146173378763694,
   	'recall': 0.7364950314056325,
   	'threshold': 0.9923073247646805},
+
   4: {'auc': 0.4982252894705332,
   	'precision': 0.3300198333296339,
   	'recall': 0.4491891521484192,
-  	'threshold': 0.8424673897462851}}
+  	'threshold': 0.8424673897462851}
 
 ### Training
 1. Download the pre-trained model

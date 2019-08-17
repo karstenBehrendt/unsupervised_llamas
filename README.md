@@ -12,9 +12,9 @@ You can reach me at "llamas" + the at sign since this is an email + kbehrendt.co
 ## Starter Code
 Make sure to check the label_scripts/label_file_scripts.py for loading and using the annotations. There exist a few sample use-cases and implementations.
 
-**ENet-SAD-Simple** folder contains the **ENet-SAD** model which achieves state-of-the-art performance in TuSimple, CULane and BDD100K datasets. It also achieves appealing performance in LLAMAS dataset. Details can be found in README in [ENet-SAD-Simple](/ENet-SAD-Simple) and [this repo](https://github.com/cardwing/Codes-for-Lane-Detection).
-
 The simple_baseline folder contains a simplistic baseline approach in Tensorflow which is supposed to be easy to understand.
+
+**ENet-SAD-Simple** folder contains the **ENet-SAD** model which achieves state-of-the-art performance in TuSimple, CULane and BDD100K datasets. It also achieves appealing performance in LLAMAS dataset. Details can be found in README in [ENet-SAD-Simple](/ENet-SAD-Simple) and [this repo](https://github.com/cardwing/Codes-for-Lane-Detection).
 
 The deeplab folder offers some scripts to train deeplab models for the unsupervised LLAMAS dataset.
 

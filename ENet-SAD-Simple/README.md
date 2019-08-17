@@ -22,7 +22,7 @@ Please follow [train_final.txt](./list/train_final.txt) and [val_final.txt](./li
 
 3. Submit the results to server 
     Please follow the instructions of LLAMAS to submit your results.
-    The performance of our trained model is as follows:
+    The performance of our trained model is as follows (you can also find the result in the [official site](https://unsupervised-llamas.com/llamas/benchmark_multi)):
 
   0: {'auc': 0.9999917047921401,
   	'precision': 0.9973478736332135,
@@ -65,7 +65,7 @@ Please follow [train_final.txt](./list/train_final.txt) and [val_final.txt](./li
 
 ## Citation
 
-If you use the codes, please cite the following publications:
+If you use this code, please cite the following publication:
 
 ``` 
 @article{hou2019learning,

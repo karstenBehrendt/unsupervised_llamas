@@ -12,6 +12,31 @@ import numpy
 from unsupervised_llamas.label_scripts import dataset_constants as dc
 
 
+def project_point(point, projection_matrix):
+    """Projects 3D point into image coordinates
+
+    Parameters
+    ----------
+    p1: iterable
+        (x, y, z), line start in 3D
+    p2: iterable
+        (x, y, z), line end in 3D
+    width: float
+           width of marker in cm
+    projection matrix: numpy.array, shape=(3, 3)
+                       projection 3D location into image space
+
+    Returns (x, y)
+    """
+    point = numpy.asarray(point)
+    projection_matrix = numpy.asarray(projection_matrix)
+
+    point_projected = projection_matrix.dot(point)
+    point_projected_scaled = point_projected / point_projected[2]
+
+    return point_projected_scaled
+
+
 def project_lane_marker(p1, p2, width, projection_matrix, color, img):
     """ Draws a marker by two 3D points (p1, p2) in 2D image space
 
@@ -39,15 +64,8 @@ def project_lane_marker(p1, p2, width, projection_matrix, color, img):
     ------
     You can't draw colored lines into a grayscale image.
     """
-    p1_corrected = numpy.asarray(p1)
-    p2_corrected = numpy.asarray(p2)
-
-    projection_matrix = numpy.asarray(projection_matrix)
-    p1_projected = projection_matrix.dot(p1_corrected)
-    p1_projected /= p1_projected[2]
-
-    p2_projected = projection_matrix.dot(p2_corrected)
-    p2_projected /= p2_projected[2]
+    p1_projected = project_point(p1, projection_matrix)
+    p2_projected = project_point(p2, projection_matrix)
 
     points = numpy.zeros((4, 2), dtype=numpy.float32)
     shift = 0
@@ -151,7 +169,7 @@ def _fix_json(json_string):
     return json_string
 
 
-def _filter_lanes_by_size(label, min_height=20):
+def _filter_lanes_by_size(label, min_height=40):
     """ May need some tuning """
     filtered_lanes = []
     for lane in label['lanes']:
@@ -160,6 +178,15 @@ def _filter_lanes_by_size(label, min_height=20):
         if (lane_end - lane_start) < min_height:
             continue
         filtered_lanes.append(lane)
+    label['lanes'] = filtered_lanes
+
+
+def _filter_few_markers(label, min_markers=2):
+    """Filter lines that consist of only few markers"""
+    filtered_lanes = []
+    for lane in label['lanes']:
+        if len(lane['markers']) >= min_markers:
+            filtered_lanes.append(lane)
     label['lanes'] = filtered_lanes
 
 
@@ -182,14 +209,14 @@ def _fix_lane_names(label):
         lane['lane_id'] = mapping[lane['lane_id']]
 
 
-def read_json(json_path):
+def read_json(json_path, min_lane_height=20):
     """ Reads and cleans label file information by path"""
     with open(json_path, 'r') as jf:
-        json_file = jf.read()
-        json_file = _fix_json(json_file)
-        label_content = json.loads(json_file)
-        _filter_lanes_by_size(label_content)
-        _fix_lane_names(label_content)
+        label_content = json.load(jf)
+
+    _filter_lanes_by_size(label_content, min_height=min_lane_height)
+    _filter_few_markers(label_content, min_markers=2)
+    _fix_lane_names(label_content)
 
     content = {
         'projection_matrix': label_content['projection_matrix'],
@@ -198,7 +225,6 @@ def read_json(json_path):
 
     for lane in content['lanes']:
         for marker in lane['markers']:
-            # TODO dict comprehension is your friend (and then test it)
             for pixel_key in marker['pixel_start'].keys():
                 marker['pixel_start'][pixel_key] = int(marker['pixel_start'][pixel_key])
             for pixel_key in marker['pixel_end'].keys():

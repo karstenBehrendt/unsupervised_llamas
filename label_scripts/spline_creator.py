@@ -1,11 +1,13 @@
 """
 Scripts to create the curves between lanes. (Splines here)
 """
+import pdb
 
 import cv2
 import numpy
 import scipy.interpolate
 
+from unsupervised_llamas.common import helper_scripts
 from unsupervised_llamas.label_scripts import label_file_scripts
 from unsupervised_llamas.label_scripts import dataset_constants as dc
 
@@ -15,10 +17,75 @@ def _draw_points(image, points, color=(255, 0, 0)):
         cv2.circle(image, point, 2, color, 1)
 
 
+def _extend_lane(lane, projection_matrix):
+    """Extends marker closest to the camera
+
+    Adds an extra marker that reaches the end of the image
+
+    Parameters
+    ----------
+    lane : iterable of markers
+    projection_matrix : 3x3 projection matrix
+    """
+    # Unfortunately, we did not store markers beyond the image plane. That hurts us now
+    # z is the orthongal distance to the car. It's good enough
+
+    # The markers are automatically detected, mapped, and labeled. There exist faulty ones,
+    # e.g., horizontal markers which need to be filtered
+    filtered_markers = filter(lambda x: (x['pixel_start']['y'] != x['pixel_end']['y'] and
+                              x['pixel_start']['x'] != x['pixel_end']['x']),
+                              lane['markers'])
+    # might be the first marker in the list but not guaranteed
+    closest_marker = min(filtered_markers, key=lambda x: x['world_start']['z'])
+
+    if closest_marker['world_start']['z'] < 0:  # This one likely equals "if False"
+        return lane
+
+    # World marker extension approximation
+    x_gradient = (closest_marker['world_end']['x'] - closest_marker['world_start']['x']) /\
+        (closest_marker['world_end']['z'] - closest_marker['world_start']['z'])
+    y_gradient = (closest_marker['world_end']['y'] - closest_marker['world_start']['y']) /\
+        (closest_marker['world_end']['z'] - closest_marker['world_start']['z'])
+
+    zero_x = closest_marker['world_start']['x'] - (closest_marker['world_start']['z'] - 1) * x_gradient
+    zero_y = closest_marker['world_start']['y'] - (closest_marker['world_start']['z'] - 1) * y_gradient
+
+    # Pixel marker extension approximation
+    pixel_x_gradient = (closest_marker['pixel_end']['x'] - closest_marker['pixel_start']['x']) /\
+        (closest_marker['pixel_end']['y'] - closest_marker['pixel_start']['y'])
+    pixel_y_gradient = (closest_marker['pixel_end']['y'] - closest_marker['pixel_start']['y']) /\
+        (closest_marker['pixel_end']['x'] - closest_marker['pixel_start']['x'])
+
+    pixel_zero_x = closest_marker['pixel_start']['x'] + (716 - closest_marker['pixel_start']['y']) * pixel_x_gradient
+    if pixel_zero_x < 0:
+        left_y = closest_marker['pixel_start']['y'] - closest_marker['pixel_start']['x'] * pixel_y_gradient
+        new_pixel_point = (0, left_y)
+    elif pixel_zero_x > 1276:
+        right_y = closest_marker['pixel_start']['y'] + (1276 - closest_marker['pixel_start']['x']) * pixel_y_gradient
+        new_pixel_point = (1276, right_y)
+    else:
+        new_pixel_point = (pixel_zero_x, 716)
+
+    new_marker = {
+        'lane_marker_id': 'FAKE',
+        'world_end': {'x': closest_marker['world_start']['x'],
+                      'y': closest_marker['world_start']['y'],
+                      'z': closest_marker['world_start']['z']},
+        'world_start': {'x': zero_x, 'y': zero_y, 'z': 1},
+        'pixel_end': {'x': closest_marker['pixel_start']['x'],
+                      'y': closest_marker['pixel_start']['y']},
+        'pixel_start': {'x': helper_scripts.ir(new_pixel_point[0]),
+                        'y': helper_scripts.ir(new_pixel_point[1])}
+    }
+    lane['markers'].insert(0, new_marker)
+
+    return lane
+
+
 class SplineCreator():
     """
     For each lane divder
-      - all lines are project
+      - all lines are projected
       - linearly interpolated to limit oscillations
       - interpolated by a spline
       - subsampled to receive individual pixel values
@@ -40,7 +107,7 @@ class SplineCreator():
         self.spline_points = {}
         self.debug_image = numpy.zeros((717, 1276, 3), dtype=numpy.uint8)
 
-    def _sample_points(self, lane, ypp=5):
+    def _sample_points(self, lane, ypp=5, between_markers=True):
         """ Markers are given by start and endpoint. This one adds extra points
         which need to be considered for the interpolation. Otherwise the spline
         could arbitrarily oscillate between start and end of the individual markers
@@ -50,6 +117,7 @@ class SplineCreator():
         lane: polyline, in theory but there are artifacts which lead to inconsistencies
               in ordering. There may be parallel lines. The lines may be dashed. It's messy.
         ypp: y-pixels per point, e.g. 10 leads to a point every ten pixels
+        between_markers : bool, interpolates inbetween dashes
 
         Notes
         -----
@@ -57,39 +125,66 @@ class SplineCreator():
         the start and end points are too sparse.
         Removing upper lane markers that have starting and end points mapped into the same pixel.
         """
-        # NOTE lots of potential for errors. Not checked.
-        points = []
-        lane_ends = []
-        for marker in lane['markers']:
-            points.append((marker['pixel_start']['x'], marker['pixel_start']['y']))
-            lane_ends.append((marker['pixel_start']['x'], marker['pixel_start']['y']))
 
-            height = float(marker['pixel_start']['y'] - marker['pixel_end']['y'])
-            if height > ypp + 2:
-                num_steps = height // ypp
+        # Collect all x values from all markers along a given line. There may be multiple
+        # intersecting markers, i.e., multiple entries for some y values
+        x_values = [[] for i in range(717)]
+        for marker in lane['markers']:
+            try:
+                x_values[marker['pixel_start']['y']].append(marker['pixel_start']['x'])
+            except IndexError:
+                pdb.set_trace()
+
+            height = marker['pixel_start']['y'] - marker['pixel_end']['y']
+            if height > 2:
                 slope = (marker['pixel_end']['x'] - marker['pixel_start']['x']) / height
-                step_size = (marker['pixel_start']['y'] - marker['pixel_end']['y']) / float(num_steps)
-                for i in range(1, int(num_steps)):
+                step_size = (marker['pixel_start']['y'] - marker['pixel_end']['y']) / float(height)
+                for i in range(height + 1):
                     x = marker['pixel_start']['x'] + slope * step_size * i
                     y = marker['pixel_start']['y'] - step_size * i
-                    points.append((int(round(x)), int(round(y))))
-            points.append((marker['pixel_end']['x'], marker['pixel_end']['y']))
-            lane_ends.append((marker['pixel_end']['x'], marker['pixel_end']['y']))
+                    x_values[helper_scripts.ir(y)].append(helper_scripts.ir(x))
 
-        points = sorted(points, key=lambda x: x[1])  # sorting vertically
+        # Calculate average x values for each y value
+        for y, xs in enumerate(x_values):
+            if not xs:
+                x_values[y] = -1
+            else:
+                x_values[y] = sum(xs) / float(len(xs))
 
-        unique_points = []
-        unique_points.append(points[0])
-        for point in points[1:]:
-            if point[1] > unique_points[-1][1]:
-                unique_points.append(point)
+        # In the following, we will only interpolate between markers if needed
+        if not between_markers:
+            return x_values  # TODO ypp
 
-        self.lane_marker_points[lane['lane_id']] = lane_ends
-        self.sampled_points[lane['lane_id']] = unique_points
+        # # interpolate between markers
+        current_y = 0
+        while x_values[current_y] == -1:  # skip missing first entries
+            current_y += 1
 
-        return unique_points
+        # Also possible using numpy.interp when accounting for beginning and end
+        next_set_y = 0
+        try:
+            while current_y < 717:
+                if x_values[current_y] != -1:  # set. Nothing to be done
+                    current_y += 1
+                    continue
 
-    def _lane_spline_fit(self, lane):
+                # Finds target x value for interpolation
+                while next_set_y <= current_y or x_values[next_set_y] == -1:
+                    next_set_y += 1
+                    if next_set_y >= 717:
+                        raise StopIteration
+
+                x_values[current_y] = x_values[current_y - 1] + (x_values[next_set_y] - x_values[current_y - 1]) /\
+                    (next_set_y - current_y + 1)
+                current_y += 1
+
+        except StopIteration:
+            pass  # Done with lane
+
+        return x_values
+
+    def _lane_points_fit(self, lane):
+        # TODO name and docstring
         """ Fits spline in image space for the markers of a single lane (side)
 
         Parameters
@@ -105,47 +200,16 @@ class SplineCreator():
         This one can be drastically improved. Probably fairly easy as well.
         """
         # NOTE all variable names represent image coordinates, interpolation coordinates are swapped!
-        sampled_points = self._sample_points(lane, ypp=5)
-        sampled_array = numpy.asarray(sampled_points).astype(float)
+        lane = _extend_lane(lane, self.json_content['projection_matrix'])
+        sampled_points = self._sample_points(lane, ypp=1)
+        self.sampled_points[lane['lane_id']] = sampled_points
 
-        x_label = sampled_array[:, 0]
-        y_label = sampled_array[:, 1]
-        if y_label[-1] - y_label[0] < 40:
-            raise ValueError('lane too small')
-        if len(lane['markers']) == 1:
-            if y_label[-1] - y_label[0] > 40:
-                print('Skipping surprisingly big marker')
-            raise ValueError('Only one marker, skipping this one')
+        return sampled_points
 
-        try:
-            spline = scipy.interpolate.interp1d(x=y_label, y=x_label, kind='cubic',
-                                                bounds_error=False, fill_value='raise')
-
-            # t is given in actual y values
-            t = [y_label[(i * len(y_label)) // 5 + len(y_label) // (2 * 5)] for i in range(5)]
-            spline = scipy.interpolate.LSQUnivariateSpline(x=y_label, y=x_label, t=t)
-        except ValueError as e:
-            # Error handling should be improved ..
-            print(e)
-            raise
-
-        y_interp = numpy.linspace(y_label[0], y_label[-1], num=y_label[-1] - y_label[0], endpoint=False)
-        x_interp = spline(y_interp)
-        points = numpy.round(numpy.stack((x_interp, y_interp))).astype(int)
-        points = numpy.transpose(points)
-
-        self.spline_points[lane['lane_id']] = points
-        self.splines[lane['lane_id']] = spline
-
-        return points
-
-    def create_all_splines(self,):
+    def create_all_points(self,):
         """ Creates splines for given label """
         for lane in self.lanes:
-            try:
-                self._lane_spline_fit(lane)
-            except ValueError:
-                continue  # should be lane too short, noisily mapped markers
+            self._lane_points_fit(lane)
 
     def _show_lanes(self, return_only=False):
         """ For debugging spline creation only """
@@ -199,22 +263,12 @@ def get_horizontal_values_for_four_lanes(json_path):
     """
 
     sc = SplineCreator(json_path)
-    sc.create_all_splines()
+    sc.create_all_points()
 
-    l1 = sc.spline_points.get('l1', numpy.asarray([[-1, 0]]))
-    l0 = sc.spline_points.get('l0', numpy.asarray([[-1, 0]]))
-    r0 = sc.spline_points.get('r0', numpy.asarray([[-1, 0]]))
-    r1 = sc.spline_points.get('r1', numpy.asarray([[-1, 0]]))
-
-    def fill_values(pixel_list, vertical_pixels=717):
-        min_y = pixel_list[0, 1]
-        max_y = pixel_list[-1, 1]
-        min_filler = [(-1, -1)] * min_y
-        max_filler = [(-1, -1)] * (vertical_pixels - max_y - 1)
-        filled = min_filler + pixel_list.tolist() + max_filler
-        return numpy.asarray(filled)
+    l1 = sc.sampled_points.get('l1', [-1] * 717)
+    l0 = sc.sampled_points.get('l0', [-1] * 717)
+    r0 = sc.sampled_points.get('r0', [-1] * 717)
+    r1 = sc.sampled_points.get('r1', [-1] * 717)
 
     lanes = [l1, l0, r0, r1]
-    lanes = list(map(lambda x: fill_values(x)[:, 0], lanes))  # add missing and remove y component
-
     return lanes

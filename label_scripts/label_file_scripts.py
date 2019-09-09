@@ -32,9 +32,9 @@ def project_point(point, projection_matrix):
     projection_matrix = numpy.asarray(projection_matrix)
 
     point_projected = projection_matrix.dot(point)
-    point_projected_scaled = point_projected / point_projected[2]
+    point_projected /= point_projected[2]
 
-    return point_projected_scaled
+    return point_projected
 
 
 def project_lane_marker(p1, p2, width, projection_matrix, color, img):
@@ -52,7 +52,7 @@ def project_lane_marker(p1, p2, width, projection_matrix, color, img):
     p2: iterable
         (x, y, z), line end in 3D
     width: float
-           width of marker in cm
+           width of marker in m, default=0.1 m
     projection matrix: numpy.array, shape=(3, 3)
                        projection 3D location into image space
     color: int or tuple
@@ -64,6 +64,9 @@ def project_lane_marker(p1, p2, width, projection_matrix, color, img):
     ------
     You can't draw colored lines into a grayscale image.
     """
+    p1 = numpy.asarray(p1)
+    p2 = numpy.asarray(p2)
+
     p1_projected = project_point(p1, projection_matrix)
     p2_projected = project_point(p2, projection_matrix)
 
@@ -72,13 +75,14 @@ def project_lane_marker(p1, p2, width, projection_matrix, color, img):
     # shift_multiplier = static_cast<double>(1 << shift)
     shift_multiplier = 1  # simplified
 
-    projected_half_width1 = projection_matrix[0, 0] * width / p1_corrected[2] / 2.0
+    projection_matrix = numpy.asarray(projection_matrix)
+    projected_half_width1 = projection_matrix[0, 0] * width / p1[2] / 2.0
     points[0, 0] = (p1_projected[0] - projected_half_width1) * shift_multiplier
     points[0, 1] = p1_projected[1] * shift_multiplier
     points[1, 0] = (p1_projected[0] + projected_half_width1) * shift_multiplier
     points[1, 1] = p1_projected[1] * shift_multiplier
 
-    projected_half_width2 = projection_matrix[0, 0] * width / p2_corrected[2] / 2.0
+    projected_half_width2 = projection_matrix[0, 0] * width / p2[2] / 2.0
     points[2, 0] = (p2_projected[0] + projected_half_width2) * shift_multiplier
     points[2, 1] = p2_projected[1] * shift_multiplier
     points[3, 0] = (p2_projected[0] - projected_half_width2) * shift_multiplier

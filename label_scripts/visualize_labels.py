@@ -10,19 +10,21 @@ from unsupervised_llamas.label_scripts import label_file_scripts
 from unsupervised_llamas.label_scripts import dataset_constants as dc
 
 
-def _draw_lines(debug_image, spline, color):
-    # NOTE spline given as points
-    last_point = None
-    for i, point in enumerate(map(tuple, spline)):
-        if i == 0:
-            last_point = point
-            continue
-        try:  # difference in cv2 versions
-            aliasing = cv2.LINE_AA
-        except AttributeError:
-            aliasing = cv2.CV_AA
-        cv2.line(debug_image, point, last_point, color, 3, aliasing)
-        last_point = point
+def _draw_points(debug_image, x_coordinates, color):
+    """ Draws a list of x values into an image
+
+    Parameters
+    ----------
+    debug_image : numpy.array
+                  Image to draw the x values into
+    x_coordinates : list
+                    list of x values along the y-axis
+    color : tuple
+            BGR color value or gray if the input is grayscale
+    """
+    for y, x in enumerate(x_coordinates):
+        if x != -1:
+            cv2.circle(debug_image, (int(round(x)), y), 2, color)
 
 
 def create_spline_image(json_path, image='blank'):
@@ -41,7 +43,7 @@ def create_spline_image(json_path, image='blank'):
         image with drawn splines
     """
     sc = SplineCreator(json_path)
-    sc.create_all_splines()
+    sc.create_all_points()
 
     # TODO replace section by label_file_scripts read_image
     if isinstance(image, str):
@@ -56,8 +58,8 @@ def create_spline_image(json_path, image='blank'):
     if (len(image.shape) == 2 or image.shape[2] == 1):
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
-    for lane_name, spline in sc.spline_points.items():
-        _draw_lines(image, spline, dc.DICT_COLORS[lane_name])
+    for lane_name, spline in sc.sampled_points.items():
+        _draw_points(image, spline, dc.DICT_COLORS[lane_name])
 
     return image
 

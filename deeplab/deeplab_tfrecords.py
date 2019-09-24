@@ -41,8 +41,8 @@ import tensorflow as tf
 import tqdm
 
 from unsupervised_llamas.common import constants
+from unsupervised_llamas.common import helper_scripts
 from unsupervised_llamas.label_scripts import dataset_constants as dc
-from unsupervised_llamas.label_scripts import helper_scripts
 from unsupervised_llamas.label_scripts import label_file_scripts
 from unsupervised_llamas.label_scripts import segmentation_labels
 from unsupervised_llamas.label_scripts import visualize_labels

@@ -8,7 +8,7 @@ import os
 
 import tqdm
 
-from unsupervised_llamas.label_scripts import helper_scripts
+from unsupervised_llamas.common import helper_scripts
 
 
 def fix_names(input_folder, input_string, output_string):

@@ -15,7 +15,6 @@ import argparse
 import os
 import subprocess
 
-from unsupervised_llamas.common import constants
 from unsupervised_llamas.deeplab import deeplab_common
 
 
@@ -25,13 +24,15 @@ def vis_deeplab(settings):
 
     env = os.environ.copy()
     env['CUDA_VISIBLE_DEVICES'] = str(settings['gpu'])
+    dataset = deeplab_common.segmentation_set_name(settings)
+    dataset_dir = deeplab_common.tfrecords_dir(settings)
     vis_call = [
         'python3',
         os.path.join(deeplab_common.DEEPLAB_DIR, 'vis.py'),
 
         '--logtostderr',
         '--vis_split=valid',
-        '--dataset={}'.format(deeplab_common.segmentation_set_name(settings)),
+        '--dataset={}'.format(dataset),
         # '--dataset_dir={}'.format(settings['dataset_dir']),
         '--model_variant=xception_65',
         '--atrous_rates=6',
@@ -40,11 +41,10 @@ def vis_deeplab(settings):
         '--output_stride=16',
         '--decoder_output_stride=4',
 
-        '--vis_crop_size={}'.format(constants.IMAGE_HEIGHT),  # May need to be changed # 513,513
-        '--vis_crop_size={}'.format(constants.IMAGE_WIDTH),  # May need to be changed
+        '--vis_crop_size=1276,717',  # May need to be changed # 513,513
         '--checkpoint_dir={}'.format(checkpoint_dir),
         '--vis_logdir={}_vis'.format(checkpoint_dir),
-        '--dataset_dir={}'.format(deeplab_common.tfrecords_dir(settings)),
+        '--dataset_dir={}'.format(dataset_dir),
         '--also_save_raw_predictions']
 
     subprocess.call(vis_call, env=env)

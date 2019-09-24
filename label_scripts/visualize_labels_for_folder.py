@@ -8,7 +8,7 @@ import os
 import cv2
 import tqdm
 
-from unsupervised_llamas.label_scripts import helper_scripts
+from unsupervised_llamas.common import helper_scripts
 from unsupervised_llamas.label_scripts import visualize_labels
 
 

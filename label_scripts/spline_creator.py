@@ -5,7 +5,6 @@ import pdb
 
 import cv2
 import numpy
-import scipy.interpolate
 
 from unsupervised_llamas.common import helper_scripts
 from unsupervised_llamas.label_scripts import label_file_scripts
@@ -96,15 +95,16 @@ class SplineCreator():
       - Extending last marker may in some cases be interesting too
     Any help is welcome.
 
+    Call create_all_points and get the points in self.sampled_points
+    It has an x coordinate for each value for each lane
+
     """
     def __init__(self, json_path):
         self.json_path = json_path
         self.json_content = label_file_scripts.read_json(json_path)
         self.lanes = self.json_content['lanes']
         self.lane_marker_points = {}
-        self.sampled_points = {}
-        self.splines = {}
-        self.spline_points = {}
+        self.sampled_points = {}  # <--- the interesting part
         self.debug_image = numpy.zeros((717, 1276, 3), dtype=numpy.uint8)
 
     def _sample_points(self, lane, ypp=5, between_markers=True):
@@ -216,10 +216,7 @@ class SplineCreator():
 
         gray_image = label_file_scripts.read_image(self.json_path, 'gray')
         self.debug_image = cv2.cvtColor(gray_image, cv2.COLOR_GRAY2BGR)
-        self.create_all_splines()
-
-        for lane_name, spline in self.spline_points.items():
-            _draw_points(self.debug_image, spline, dc.DICT_COLORS[lane_name])
+        self.create_all_points()
 
         for _, sampled_points in self.sampled_points.items():
             _draw_points(self.debug_image, sampled_points, dc.DCOLORS[1])

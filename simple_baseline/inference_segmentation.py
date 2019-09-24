@@ -15,7 +15,7 @@ import tensorflow as tf
 import tqdm
 
 from unsupervised_llamas.label_scripts import dataset_constants
-from unsupervised_llamas.label_scripts import helper_scripts
+from unsupervised_llamas.common import helper_scripts
 from unsupervised_llamas.simple_baseline import utils
 
 
@@ -61,7 +61,7 @@ def model_speed(checkpoint_file, num_samples, num_channels):
     with tf.Session():
         start = time.time()
         for image in tqdm.tqdm(images):
-            prediction = nm.single_batch_inference({'image_input:0': image})
+            nm.single_batch_inference({'image_input:0': image})
 
         end = time.time()
     duration = end - start

@@ -46,9 +46,9 @@ import pprint
 import cv2
 import tqdm
 
+from unsupervised_llamas.common import helper_scripts
 from unsupervised_llamas.evaluation import segmentation_metrics
 from unsupervised_llamas.label_scripts import dataset_constants
-from unsupervised_llamas.label_scripts import helper_scripts
 from unsupervised_llamas.label_scripts import segmentation_labels
 
 

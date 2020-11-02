@@ -45,6 +45,8 @@ def add_ys(xs):
 
 
 def draw_lane(lane, img=None, img_shape=None, width=30):
+    """Draw a lane (a list of points) on an image by drawing a line with width `width` through each
+    pair of points i and i+i"""
     if img is None:
         img = np.zeros(img_shape, dtype=np.uint8)
     lane = lane.astype(np.int32)
@@ -54,7 +56,8 @@ def draw_lane(lane, img=None, img_shape=None, width=30):
 
 
 def discrete_cross_iou(xs, ys, width=30, img_shape=LLAMAS_IMG_RES):
-    """For each lane in xs, compute its Intersection Over Union (IoU) with each lane in ys"""
+    """For each lane in xs, compute its Intersection Over Union (IoU) with each lane in ys by drawing the lanes on
+    an image"""
     xs = [draw_lane(lane, img_shape=img_shape, width=width) > 0 for lane in xs]
     ys = [draw_lane(lane, img_shape=img_shape, width=width) > 0 for lane in ys]
 
@@ -67,6 +70,8 @@ def discrete_cross_iou(xs, ys, width=30, img_shape=LLAMAS_IMG_RES):
 
 
 def continuous_cross_iou(xs, ys, width=30):
+    """For each lane in xs, compute its Intersection Over Union (IoU) with each lane in ys using the area between each
+    pair of points"""
     h, w = IMAGE_HEIGHT, IMAGE_WIDTH
     image = Polygon([(0, 0), (0, h - 1), (w - 1, h - 1), (w - 1, 0)])
     xs = [LineString(lane).buffer(distance=width / 2., cap_style=1, join_style=2).intersection(image) for lane in xs]
@@ -81,6 +86,7 @@ def continuous_cross_iou(xs, ys, width=30):
 
 
 def interpolate_lane(points, n=50):
+    """Spline interpolation of a lane. Used on the predictions"""
     x = [x for x, _ in points]
     y = [y for _, y in points]
     tck, _ = splprep([x, y], s=0, t=n, k=min(3, len(points) - 1))
@@ -90,6 +96,7 @@ def interpolate_lane(points, n=50):
 
 
 def culane_metric(pred, anno, width=30, iou_threshold=0.5, unofficial=False, img_shape=LLAMAS_IMG_RES):
+    """Computes CULane's metric for a single image"""
     if len(pred) == 0:
         return 0, 0, len(anno)
     if len(anno) == 0:
@@ -110,6 +117,9 @@ def culane_metric(pred, anno, width=30, iou_threshold=0.5, unofficial=False, img
 
 
 def load_prediction(path):
+    """Loads an image's predictions
+    Returns a list of lanes, where each lane is a list of points (x,y)
+    """
     with open(path, 'r') as data_file:
         img_data = data_file.readlines()
     img_data = [line.split() for line in img_data]
@@ -125,6 +135,9 @@ def load_prediction_list(label_paths, pred_dir):
 
 
 def load_labels(label_dir):
+    """Loads the annotations and its paths
+    Each annotation is converted to a list of points (x, y)
+    """
     label_paths = helper_scripts.get_files_from_folder(label_dir, '.json')
     annos = [[add_ys(xs) for xs in spline_creator.get_horizontal_values_for_four_lanes(label_path) if
               (np.array(xs) >= 0).sum() > 1]  # lanes annotated with a single point are ignored
@@ -136,6 +149,7 @@ def load_labels(label_dir):
 
 
 def eval_predictions(pred_dir, anno_dir, width=30, unofficial=True, sequential=False):
+    """Evaluates the predictions in pred_dir and returns CULane's metrics (precision, recall, F1 and its components)"""
     print(f'Loading annotation data ({anno_dir})...')
     annotations, label_paths = load_labels(anno_dir)
     print(f'Loading prediction data ({pred_dir})...')

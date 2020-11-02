@@ -27,26 +27,16 @@ from p_tqdm import t_map, p_map
 from scipy.interpolate import splprep, splev
 from scipy.optimize import linear_sum_assignment
 from shapely.geometry import LineString, Polygon
-
 import unsupervised_llamas.common.helper_scripts as helper_scripts
 import unsupervised_llamas.label_scripts.spline_creator as spline_creator
+from unsupervised_llamas.common.constants import IMAGE_HEIGHT, IMAGE_WIDTH
 
-LLAMAS_IMG_RES = (717, 1276)
+LLAMAS_IMG_RES = (IMAGE_HEIGHT, IMAGE_WIDTH)
 
 
-def add_ys(xs, vertical_cutoff=300):
-    assert len(xs) >= 717 - vertical_cutoff, "Need at least 417 pixels per lane"
-
-    # Reference lanes go from 0 to 717. If a horizontal entry is not
-    # defined, it is stored as -1. We have to filter for that.
-
-    if len(xs) == 717:  # lane regressed across complete image
-        xs = xs[vertical_cutoff:]
-    elif len(xs) == 417:  # lane regress across part of image that is relevant
-        pass
-    else:
-        raise NotImplementedError(f"Evaluations not implemented for length of detected lane: {len(xs)}")
-    xs = np.array(xs)
+def add_ys(xs):
+    """For each x in xs, make a tuple with x and its corresponding y."""
+    xs = np.array(xs[300:])
     valid = xs >= 0
     xs = xs[valid]
     assert len(xs) > 1
@@ -64,18 +54,20 @@ def draw_lane(lane, img=None, img_shape=None, width=30):
 
 
 def discrete_cross_iou(xs, ys, width=30, img_shape=LLAMAS_IMG_RES):
+    """For each lane in xs, compute its Intersection Over Union (IoU) with each lane in ys"""
     xs = [draw_lane(lane, img_shape=img_shape, width=width) > 0 for lane in xs]
     ys = [draw_lane(lane, img_shape=img_shape, width=width) > 0 for lane in ys]
 
     ious = np.zeros((len(xs), len(ys)))
     for i, x in enumerate(xs):
         for j, y in enumerate(ys):
+            # IoU by the definition: sum all intersections (binary and) and divide by the sum of the union (binary or)
             ious[i, j] = (x & y).sum() / (x | y).sum()
     return ious
 
 
-def continuous_cross_iou(xs, ys, width=30, img_shape=LLAMAS_IMG_RES):
-    h, w, _ = img_shape
+def continuous_cross_iou(xs, ys, width=30):
+    h, w = IMAGE_HEIGHT, IMAGE_WIDTH
     image = Polygon([(0, 0), (0, h - 1), (w - 1, h - 1), (w - 1, 0)])
     xs = [LineString(lane).buffer(distance=width / 2., cap_style=1, join_style=2).intersection(image) for lane in xs]
     ys = [LineString(lane).buffer(distance=width / 2., cap_style=1, join_style=2).intersection(image) for lane in ys]
@@ -88,7 +80,7 @@ def continuous_cross_iou(xs, ys, width=30, img_shape=LLAMAS_IMG_RES):
     return ious
 
 
-def interp(points, n=50):
+def interpolate_lane(points, n=50):
     x = [x for x, _ in points]
     y = [y for _, y in points]
     tck, _ = splprep([x, y], s=0, t=n, k=min(3, len(points) - 1))
@@ -102,20 +94,18 @@ def culane_metric(pred, anno, width=30, iou_threshold=0.5, unofficial=False, img
         return 0, 0, len(anno)
     if len(anno) == 0:
         return 0, len(pred), 0
-    interp_pred = np.array([interp(pred_lane, n=50) for pred_lane in pred])  # (4, 50, 2)
-    interp_anno = np.array([interp(anno_lane, n=50) for anno_lane in anno])  # (4, 50, 2)
+    interp_pred = np.array([interpolate_lane(pred_lane, n=50) for pred_lane in pred])  # (4, 50, 2)
+    anno = np.array([np.array(anno_lane) for anno_lane in anno], dtype=object)
 
     if unofficial:
-        ious = continuous_cross_iou(interp_pred, interp_anno, width=width, img_shape=img_shape)
+        ious = continuous_cross_iou(interp_pred, anno, width=width)
     else:
-        ious = discrete_cross_iou(interp_pred, interp_anno, width=width, img_shape=img_shape)
+        ious = discrete_cross_iou(interp_pred, anno, width=width, img_shape=img_shape)
 
     row_ind, col_ind = linear_sum_assignment(1 - ious)
     tp = int((ious[row_ind, col_ind] > iou_threshold).sum())
     fp = len(pred) - tp
     fn = len(anno) - tp
-    # pred_ious = np.zeros(len(pred))
-    # pred_ious[row_ind] = ious[row_ind, col_ind]
     return tp, fp, fn
 
 
@@ -146,16 +136,18 @@ def load_labels(label_dir):
 
 
 def eval_predictions(pred_dir, anno_dir, width=30, unofficial=True, sequential=False):
-    print('Loading annotation data ({})...'.format(anno_dir))
+    print(f'Loading annotation data ({anno_dir})...')
     annotations, label_paths = load_labels(anno_dir)
-    print('Loading prediction data ({})...'.format(pred_dir))
+    print(f'Loading prediction data ({pred_dir})...')
     predictions = load_prediction_list(label_paths, pred_dir)
     print('Calculating metric {}...'.format('sequentially' if sequential else 'in parallel'))
     if sequential:
-        results = t_map(partial(culane_metric, width=width, unofficial=unofficial, img_shape=LLAMAS_IMG_RES), predictions,
+        results = t_map(partial(culane_metric, width=width, unofficial=unofficial, img_shape=LLAMAS_IMG_RES),
+                        predictions,
                         annotations)
     else:
-        results = p_map(partial(culane_metric, width=width, unofficial=unofficial, img_shape=LLAMAS_IMG_RES), predictions,
+        results = p_map(partial(culane_metric, width=width, unofficial=unofficial, img_shape=LLAMAS_IMG_RES),
+                        predictions,
                         annotations)
     total_tp = sum(tp for tp, _, _ in results)
     total_fp = sum(fp for _, fp, _ in results)

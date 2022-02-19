@@ -19,6 +19,7 @@ metric is used.
 
 import os
 import argparse
+import warnings
 from functools import partial
 
 import cv2
@@ -85,11 +86,12 @@ def continuous_cross_iou(xs, ys, width=30):
     return ious
 
 
-def remove_con_dup(x):
-    """Customize a set op to remove consecutive duplications"""
+def remove_consecutive_duplicates(x):
+    """Remove consecutive duplicates"""
     y = []
     for t in x:
         if len(y) > 0 and y[-1] == t:
+            warnings.warn('Removed consecutive duplicate point ({}, {})!'.format(t[0], t[1]))
             continue
         y.append(t)
     return y
@@ -97,10 +99,10 @@ def remove_con_dup(x):
 
 def interpolate_lane(points, n=50):
     """Spline interpolation of a lane. Used on the predictions"""
-    # Consecutive duplications (can happen with parametric curves)
+    # Consecutive duplicates (can happen with parametric curves)
     # cause internal error for scipy's splprep:
     # https://stackoverflow.com/a/47949170/15449902
-    points = remove_con_dup(points)
+    points = remove_consecutive_duplicates(points)
 
     # B-Spline interpolate
     x = [x for x, _ in points]
